@@ -21,11 +21,18 @@ class MainWindow : public QMainWindow {
     ~MainWindow();
 
   private:
+    void DrawScribbles(int mouse_pos_x, int mouse_pos_y, int colour);
+    void LoadImage(const char* filename);
     Ui::MainWindow *ui;
     QImage* m_image;
     QSize* m_toolbar_size;
     int m_image_width;
     int m_image_height;
+
+  private slots:
+    void SaveImage();
+    void ResetImage();
+    void ExecuteAlgorithm();
 
   protected:
     void paintEvent(QPaintEvent *);
