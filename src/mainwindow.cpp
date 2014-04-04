@@ -10,7 +10,7 @@
 #include <QSize>
 #include <QMouseEvent>
 
-#include "ui_mainwindow.h"
+#include "../ui_mainwindow.h"
 #include "include/utils.h"
 
 #define IMAGE_POS_X 0
