@@ -12,9 +12,10 @@ TARGET = imageprocess
 TEMPLATE = app
 
 
-SOURCES += main.cpp\
-        mainwindow.cpp
+SOURCES += main.cpp \
+           mainwindow.cpp \
+           utils.cpp
 
-HEADERS  += mainwindow.h
+HEADERS  += include/mainwindow.h
 
 FORMS    += mainwindow.ui
