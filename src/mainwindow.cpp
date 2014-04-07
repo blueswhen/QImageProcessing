@@ -17,7 +17,7 @@
 #define IMAGE_POS_Y 33
 #define SCRIBBLE_SIZE 5
 #define SCRIBBLE_SIZE_INC 5
-#define FILENAME "test_image/pepper.bmp"
+#define FILENAME "test.bmp"
 
 #define RED 0x00ff0000
 #define GREEN 0x0000ff00
