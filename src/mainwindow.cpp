@@ -126,8 +126,8 @@ void MainWindow::DrawScribbles(int mouse_pos_x, int mouse_pos_y,
   int center_x = mouse_pos_x - IMAGE_POS_X;
   int center_y = mouse_pos_y - IMAGE_POS_Y;
 
-  for (int y = center_y - m_scribble_size; y < center_y + m_scribble_size; ++y) {
-    for (int x = center_x - m_scribble_size; x < center_x + m_scribble_size; ++x) {
+  for (int y = center_y - m_scribble_size; y < center_y + m_scribble_size; ++y) {  // NOLINT
+    for (int x = center_x - m_scribble_size; x < center_x + m_scribble_size; ++x) {  // NOLINT
       if (x < 0 || x > m_image_width - 1 || y < 0 || y > m_image_height - 1) {
         continue;
       }
