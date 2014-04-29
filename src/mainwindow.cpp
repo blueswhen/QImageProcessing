@@ -20,7 +20,7 @@
 #define IMAGE_POS_Y 33
 #define SCRIBBLE_SIZE 5
 #define SCRIBBLE_SIZE_INC 50
-#define FILENAME "removal_3.bmp"
+#define FILENAME "louti.bmp"
 #define GetRValue(rgb) ((U8)(rgb))^0x00000000
 #define GetGValue(rgb) ((U8)(((U16)(rgb)) >> 8))^0x00000000
 #define GetBValue(rgb) ((U8)((rgb)>>16))^0x00000000
