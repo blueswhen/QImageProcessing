@@ -1,6 +1,8 @@
 // Copyright 2014-4 sxniu
 #include "include/mainwindow.h"
-
+#include "include/inpainting.h"
+#include "cv.h"
+#include "highgui.h"
 #include <stdio.h>
 #include <QImage>
 #include <QPainter>
@@ -9,16 +11,19 @@
 #include <QActionGroup>
 #include <QSize>
 #include <QMouseEvent>
-
+#define MAX(a, b)  (((a) > (b)) ? (a) : (b))
+#define MIN(a, b)  (((a) < (b)) ? (a) : (b))
 #include "../ui_mainwindow.h"
 #include "include/utils.h"
 
 #define IMAGE_POS_X 0
 #define IMAGE_POS_Y 33
 #define SCRIBBLE_SIZE 5
-#define SCRIBBLE_SIZE_INC 5
-#define FILENAME "test.bmp"
-
+#define SCRIBBLE_SIZE_INC 50
+#define FILENAME "removal_3.bmp"
+#define GetRValue(rgb) ((U8)(rgb))^0x00000000
+#define GetGValue(rgb) ((U8)(((U16)(rgb)) >> 8))^0x00000000
+#define GetBValue(rgb) ((U8)((rgb)>>16))^0x00000000
 #define RED 0x00ff0000
 #define GREEN 0x0000ff00
 #define BLUE 0x000000ff
@@ -81,7 +86,8 @@ void MainWindow::LoadImage(const char* filename) {
 }
 
 void MainWindow::SaveImage() {
-  m_image->save("result.bmp");
+  m_image->save("pix.bmp");
+
 }
 
 void MainWindow::ResetImage() {
@@ -89,14 +95,105 @@ void MainWindow::ResetImage() {
 }
 
 void MainWindow::ExecuteAlgorithm() {
-  for (int y = 1; y < m_image_height - 1; ++y) {
-    for (int x = 1; x < m_image_width - 1; ++x) {
-      if ((m_image->pixel(x, y) & NO_ALPHA) == BLACK) {
-        m_image->setPixel(x, y, RED);
+    m_image->save("tmp.bmp");
+
+    IplImage *src = 0;   //源图像指针
+
+    IplImage *dst = 0;   //目标图像指针
+    IplImage *dst_opencv = 0;   //目标图像指针
+    float scale = 0.618;  //缩放倍数为0.618倍
+
+    CvSize dst_cvsize;   //目标图像尺寸
+    src = cvLoadImage("tmp.bmp");
+    dst_cvsize.width = src->width * scale;  //目标图像的宽为源图象宽的scale倍
+    dst_cvsize.height = src->height * scale; //目标图像的高为源图象高的scale倍
+    float xx,yy;
+    int a,b;
+    int rr,gg,bb;
+    dst = cvCreateImage( dst_cvsize, src->depth, src->nChannels); //构造目标图象
+    dst_opencv = cvCreateImage( dst_cvsize, src->depth, src->nChannels);
+    double k = 0.618;
+    double widthScale = (float)(1.0 / k);
+    double heightScale = (float)(1.0 / k);
+    for(int x=(int)k;x<dst_cvsize.width -k ; ++x) {
+      for(int y = (int)k;y<dst_cvsize.height - k ; ++y) {
+         xx = x * widthScale ;
+         yy = y * heightScale ;
+         if(xx <= 1e-8) {
+           xx = 0;
+         }
+         if(xx > src->width - 2)
+           xx=(float)(src->width - 2);
+         if(yy <= 1e-8)
+           yy = 0;
+         if(yy > src->height - 2)
+           yy = (float)(src->height - 2);
+         a = (int)xx;
+         b = (int)yy;
+         //分别得到对应像素的R、G、B值并用双线性插值得到新像素的R、G、B值
+         int g11,g12,g21,g22;
+         g11 = GetGValue(m_image->pixel(a,b));
+         g12 = GetGValue(m_image->pixel(a + 1,b));
+         g21 = GetGValue(m_image->pixel(a,b + 1));
+         g22 = GetGValue(m_image->pixel(a + 1,b + 1));
+         gg = (int)(g11 * (a + 1 - xx) * (b + 1 - yy) + g12 * (a + 1 - xx) *(yy - b) +g21 * (xx - a) * (b + 1 - yy) + g22 *(xx - a) * (yy - b));
+         if(g11 == 255 || g12 == 255 || g21 == 255 || g22 == 255) {
+                      ((uchar*)(dst->imageData + dst->widthStep*y))[x * 3 + 2] = 0;
+                      ((uchar*)(dst->imageData + dst->widthStep*y))[x * 3 + 1] = 255;
+                      ((uchar*)(dst->imageData + dst->widthStep*y))[x * 3] = 0;
+                      continue;
+         }
+         int r11,r12,r21,r22;
+         m_image->pixel(a,b);
+         r11 = GetRValue(m_image->pixel(a,b));
+         r12 = GetRValue(m_image->pixel(a + 1,b));
+         r21 = GetRValue(m_image->pixel(a,b + 1));
+         r22 = GetRValue(m_image->pixel(a + 1,b + 1));
+         rr = (int)(r11 * (a + 1 - xx) * (b + 1 - yy) + r12 * (a + 1 - xx) * (yy - b) + r21 * (xx - a) * (b + 1 - yy) + r22 *(xx - a) * (yy - b));
+         int b11,b12,b21,b22;
+         b11 = GetBValue(m_image->pixel(a,b));
+         b12 = GetBValue(m_image->pixel(a + 1,b));
+         b21 = GetBValue(m_image->pixel(a,b + 1));
+         b22 = GetBValue(m_image->pixel(a + 1,b + 1));
+         bb = (int)(b11 * (a + 1 - xx) * (b + 1 - yy) + b12 * (a + 1 - xx) * (yy - b) + b21 * (xx - a) * (b + 1 - yy) + b22 * (xx - a) * (yy - b));
+         //将得到的新R、G、B值写到新图像中
+         ((uchar*)(dst->imageData + dst->widthStep * y))[x * 3 + 2] = MIN(255,bb);
+         ((uchar*)(dst->imageData + dst->widthStep * y))[x * 3 + 1] = MIN(255,gg);
+         ((uchar*)(dst->imageData + dst->widthStep * y))[x * 3] = MIN(255,rr);
+              }
+          }
+      cvResize(src, dst_opencv, CV_INTER_LINEAR); //缩放源图像到目标图像
+      //覆盖掉openc得到的修补区域
+      for(int x = 0;x < dst_cvsize.width;++x) {
+         for(int y = 0;y < dst_cvsize.height;++y) {
+            if(((uchar*)(dst->imageData + dst->widthStep * y))[x * 3 + 1] == 255){
+              ((uchar*)(dst_opencv->imageData + dst_opencv->widthStep * y))[x * 3 + 2] = 0;
+              ((uchar*)(dst_opencv->imageData + dst_opencv->widthStep * y))[x * 3 + 1] = 255;
+              ((uchar*)(dst_opencv->imageData + dst_opencv->widthStep * y))[x * 3] = 0;
+            }
+        }
       }
-    }
-  }
-  QWidget::update();
+   cvSaveImage("opencvsave.bmp",dst_opencv);
+   inpainting test("opencvsave.bmp");
+   test.Process();
+   QImage* resizeImage = new QImage();
+   resizeImage->load("result.bmp");
+   //将修复完的结果放大回原来的大小
+   IplImage *src2 = 0;
+   IplImage *dst2 = 0;
+   float scale2 = 1.0/0.618;
+   src2 = cvLoadImage("result.bmp");
+   dst_cvsize.width = src2->width * scale2;  
+   dst_cvsize.height = src2->height * scale2;
+   dst2 = cvCreateImage( dst_cvsize, src2->depth, src2->nChannels); 
+   cvResize(src2, dst2, CV_INTER_LINEAR);
+   cvSaveImage("save2.bmp",dst2);
+   QImage* lastImage= new QImage();
+   lastImage->load("save2.bmp");
+   inpainting test2(m_image);
+   //将修补部分替换掉
+   test2.Copy(lastImage);
+   QWidget::update();
 }
 
 void MainWindow::DrawImage() {
@@ -147,12 +244,12 @@ void MainWindow::paintEvent(QPaintEvent* event) {
 }
 
 void MainWindow::mousePressEvent(QMouseEvent* event) {
-  DrawScribbles(event->pos().x(), event->pos().y(), BLACK,
+  DrawScribbles(event->pos().x(), event->pos().y(), GREEN,
                 event, m_paint_scribble_method);
 }
 
 void MainWindow::mouseMoveEvent(QMouseEvent* event) {
-  DrawScribbles(event->pos().x(), event->pos().y(), BLACK,
+  DrawScribbles(event->pos().x(), event->pos().y(), GREEN,
                 event, m_paint_scribble_method);
 }
 
