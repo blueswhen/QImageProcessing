@@ -20,7 +20,7 @@
 #define IMAGE_POS_Y 33
 #define SCRIBBLE_SIZE 5
 #define SCRIBBLE_SIZE_INC 50
-#define FILENAME "louti.bmp"
+#define FILENAME "pix.bmp"
 #define GetRValue(rgb) ((U8)(rgb))^0x00000000
 #define GetGValue(rgb) ((U8)(((U16)(rgb)) >> 8))^0x00000000
 #define GetBValue(rgb) ((U8)((rgb)>>16))^0x00000000
@@ -131,18 +131,6 @@ void MainWindow::ExecuteAlgorithm() {
          a = (int)xx;
          b = (int)yy;
          //分别得到对应像素的R、G、B值并用双线性插值得到新像素的R、G、B值
-         int g11,g12,g21,g22;
-         g11 = GetGValue(m_image->pixel(a,b));
-         g12 = GetGValue(m_image->pixel(a + 1,b));
-         g21 = GetGValue(m_image->pixel(a,b + 1));
-         g22 = GetGValue(m_image->pixel(a + 1,b + 1));
-         gg = (int)(g11 * (a + 1 - xx) * (b + 1 - yy) + g12 * (a + 1 - xx) *(yy - b) +g21 * (xx - a) * (b + 1 - yy) + g22 *(xx - a) * (yy - b));
-         if(g11 == 255 || g12 == 255 || g21 == 255 || g22 == 255) {
-                      ((uchar*)(dst->imageData + dst->widthStep*y))[x * 3 + 2] = 0;
-                      ((uchar*)(dst->imageData + dst->widthStep*y))[x * 3 + 1] = 255;
-                      ((uchar*)(dst->imageData + dst->widthStep*y))[x * 3] = 0;
-                      continue;
-         }
          int r11,r12,r21,r22;
          m_image->pixel(a,b);
          r11 = GetRValue(m_image->pixel(a,b));
@@ -156,7 +144,20 @@ void MainWindow::ExecuteAlgorithm() {
          b21 = GetBValue(m_image->pixel(a,b + 1));
          b22 = GetBValue(m_image->pixel(a + 1,b + 1));
          bb = (int)(b11 * (a + 1 - xx) * (b + 1 - yy) + b12 * (a + 1 - xx) * (yy - b) + b21 * (xx - a) * (b + 1 - yy) + b22 * (xx - a) * (yy - b));
-         //将得到的新R、G、B值写到新图像中
+
+         int g11,g12,g21,g22;
+         g11 = GetGValue(m_image->pixel(a,b));
+         g12 = GetGValue(m_image->pixel(a + 1,b));
+         g21 = GetGValue(m_image->pixel(a,b + 1));
+         g22 = GetGValue(m_image->pixel(a + 1,b + 1));
+         gg = (int)(g11 * (a + 1 - xx) * (b + 1 - yy) + g12 * (a + 1 - xx) *(yy - b) +g21 * (xx - a) * (b + 1 - yy) + g22 *(xx - a) * (yy - b));
+         if((g11 == 255 && r11 == 0 && b11 ==0) ||(g12 == 255 && r12 == 0 && b12 ==0) || (g21 == 255 && r21 == 0 && b21 ==0) || (g22 == 255 && r22 == 0 && b22 ==0)) {
+                      ((uchar*)(dst->imageData + dst->widthStep*y))[x * 3 + 2] = 0;
+                      ((uchar*)(dst->imageData + dst->widthStep*y))[x * 3 + 1] = 255;
+                      ((uchar*)(dst->imageData + dst->widthStep*y))[x * 3] = 0;
+                      continue;
+         }
+             //将得到的新R、G、B值写到新图像中
          ((uchar*)(dst->imageData + dst->widthStep * y))[x * 3 + 2] = MIN(255,bb);
          ((uchar*)(dst->imageData + dst->widthStep * y))[x * 3 + 1] = MIN(255,gg);
          ((uchar*)(dst->imageData + dst->widthStep * y))[x * 3] = MIN(255,rr);
@@ -166,7 +167,7 @@ void MainWindow::ExecuteAlgorithm() {
       //覆盖掉openc得到的修补区域
       for(int x = 0;x < dst_cvsize.width;++x) {
          for(int y = 0;y < dst_cvsize.height;++y) {
-            if(((uchar*)(dst->imageData + dst->widthStep * y))[x * 3 + 1] == 255){
+            if(((uchar*)(dst->imageData + dst->widthStep * y))[x * 3 + 1] == 255 && ((uchar*)(dst->imageData + dst->widthStep * y))[x * 3] == 0 && ((uchar*)(dst->imageData + dst->widthStep * y))[x * 3 + 2] == 0){
               ((uchar*)(dst_opencv->imageData + dst_opencv->widthStep * y))[x * 3 + 2] = 0;
               ((uchar*)(dst_opencv->imageData + dst_opencv->widthStep * y))[x * 3 + 1] = 255;
               ((uchar*)(dst_opencv->imageData + dst_opencv->widthStep * y))[x * 3] = 0;

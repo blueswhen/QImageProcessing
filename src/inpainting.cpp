@@ -106,9 +106,10 @@ bool inpainting::Copy(QImage *resizeImage) {
               yy =resizeImage->height()-1;
           }
         if(m_mark[y * m_width + x] == TARGET||m_mark[y * m_width + x] == BOUNDARY){
-        Image->setPixel(x,y,resizeImage->pixel(xx,yy));
+          Image->setPixel(x,y,resizeImage->pixel(xx,yy));
         }
       }
+    cout<<" last = "<<endl;
     Image->save("last.bmp");
 }
 
@@ -217,6 +218,9 @@ for(int i = m_left;i <= m_right; ++i) {
     strcpy(path, save_path);
     strcat(path,str);
     strcat(path, ".bmp");
+    cout<<" path = "<<path<<endl;
+    //Image -> save(path);
+
     //下面的是为了画出最匹配的20个点的图片的中间步骤
     /*temp_color = Image->pixel(pri_x,pri_y);
     temp_color2 = Image->pixel(patch_x,patch_y);
@@ -568,6 +572,7 @@ bool inpainting::PatchTexture(int x, int y, int &patch_x, int &patch_y,int** &mo
             }
           }
           }
+        double distance= sqrt((source_x - target_x) * (source_x - target_x) + (source_y - target_y) * (source_y - target_y));
         double temp_sum=sum;
         double temp_sum2=num_of_known *( source_mean - mean) * ( source_mean - mean);
         double temp_sum3=num_of_known * ((sqrt(source_variance_R) -sqrt(target_variance_R / num_of_filled)) *(sqrt(source_variance_R) -sqrt(target_variance_R / num_of_filled)) + (sqrt(source_variance_G) -sqrt(target_variance_G / num_of_filled)) *(sqrt(source_variance_G) -sqrt(target_variance_G / num_of_filled)) + (sqrt(source_variance_B) -sqrt(target_variance_B / num_of_filled)) *(sqrt(source_variance_B) -sqrt(target_variance_B / num_of_filled)))/3;
@@ -585,7 +590,8 @@ bool inpainting::PatchTexture(int x, int y, int &patch_x, int &patch_y,int** &mo
             most_similar_patch_pos_2[0][0]=i;
             most_similar_patch_pos_2[0][1]=j;
           }*/
-        if(sum < min) {
+        if(sum+distance < min) {
+        //if(sum < min) {
           oux++;
           min = sum;
           patch_x = i;
@@ -613,7 +619,6 @@ bool inpainting::FillTarget(int target_x, int target_y, int source_x, int source
       y1 = target_y + iter_y;
       if(m_mark[y1 * m_width + x1]<0) {
           pix_been_inpainted++;
-          
         Image->setPixel(x1,y1,m_color[y0 * m_width + x0]);// inpaint the color
         m_color[y1 * m_width + x1] = m_color[y0 * m_width + x0];
         m_r[y1 * m_width + x1] = m_r[y0 * m_width + x0];
